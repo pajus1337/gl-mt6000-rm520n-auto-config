@@ -25,9 +25,8 @@ detect_at_port() {
 _at_probe() {
     local port="$1"
     printf 'AT\r\n' > "$port" 2>/dev/null || return 1
-    local resp
-    resp="$(head -c 16 < "$port" 2>/dev/null)"
-    printf '%s' "$resp" | grep -q 'OK'
+    # timeout required — serial ports never send EOF, head would block forever
+    timeout 2 head -c 64 < "$port" 2>/dev/null | grep -q 'OK'
 }
 
 # at_cmd COMMAND — sends AT command and prints response
@@ -65,6 +64,23 @@ detect_usb_modem() {
         grep -q "$MODEM_PID" "$pid" 2>/dev/null && return 0
     done
     return 1
+}
+
+# _usb_reprobe — unbind/bind modem USB device so newly loaded drivers attach
+_usb_reprobe() {
+    local devpath
+    for devpath in /sys/bus/usb/devices/*/idVendor; do
+        [ -f "$devpath" ] || continue
+        grep -q "$MODEM_VID" "$devpath" 2>/dev/null || continue
+        local dev="${devpath%/idVendor}"
+        local devname="${dev##*/}"
+        log_debug "Reprobing USB device: $devname"
+        echo "$devname" > /sys/bus/usb/drivers/usb/unbind 2>/dev/null || true
+        sleep 1
+        echo "$devname" > /sys/bus/usb/drivers/usb/bind   2>/dev/null || true
+        sleep 2
+        return 0
+    done
 }
 
 # wait_for_usb_modem TIMEOUT_SECS — waits until modem USB device appears

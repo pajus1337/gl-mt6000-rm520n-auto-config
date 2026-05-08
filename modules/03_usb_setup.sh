@@ -6,15 +6,23 @@
 module_usb_setup() {
     log_step "Module 03: USB interface and modem AT configuration"
 
-    # Ensure kernel modules are loaded
+    # Load kernel modules (actual module names differ from apk package names)
     log_info "Loading USB kernel modules..."
-    modprobe kmod-usb-serial-option 2>/dev/null || true
-    modprobe kmod-usb-net-qmi-wwan 2>/dev/null || true
-    modprobe kmod-usb-wdm 2>/dev/null || true
+    modprobe option    2>/dev/null || true   # kmod-usb-serial-option
+    modprobe qmi_wwan  2>/dev/null || true   # kmod-usb-net-qmi-wwan
+    modprobe cdc_wdm   2>/dev/null || true   # kmod-usb-wdm
 
-    # Wait for USB device and serial ports to appear
-    wait_for_usb_modem 30
-    sleep 2
+    # Force kernel to re-probe the modem USB device so drivers bind
+    _usb_reprobe
+
+    # Wait for ttyUSB devices to appear
+    log_info "Waiting for /dev/ttyUSB* ports..."
+    local wait=0
+    while [ ! -c /dev/ttyUSB0 ] && [ "$wait" -lt 15 ]; do
+        sleep 1
+        wait=$(( wait + 1 ))
+    done
+    [ -c /dev/ttyUSB0 ] || log_warn "ttyUSB ports not found — AT detection may fail"
 
     # Find AT command port
     detect_at_port
