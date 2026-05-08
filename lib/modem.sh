@@ -55,8 +55,16 @@ at_cmd_expect() {
 }
 
 # detect_usb_modem — returns 0 if RM520NGL USB device is present
+# Uses sysfs (lsusb is not available on vanilla OpenWrt)
 detect_usb_modem() {
-    lsusb 2>/dev/null | grep -q "${MODEM_VID}:${MODEM_PID}"
+    local vid pid
+    for vid in /sys/bus/usb/devices/*/idVendor; do
+        [ -f "$vid" ] || continue
+        grep -q "$MODEM_VID" "$vid" 2>/dev/null || continue
+        pid="${vid%idVendor}idProduct"
+        grep -q "$MODEM_PID" "$pid" 2>/dev/null && return 0
+    done
+    return 1
 }
 
 # wait_for_usb_modem TIMEOUT_SECS — waits until modem USB device appears
