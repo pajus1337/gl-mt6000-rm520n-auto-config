@@ -5,47 +5,53 @@
 # detect_at_port — finds the AT command serial port and sets AT_PORT
 detect_at_port() {
     log_info "Detecting RM520NGL AT command port..."
-    local port
 
-    # ttyUSB2 is the standard AT port for RM520NGL in default USB layout:
-    # ttyUSB0=DIAG, ttyUSB1=NMEA, ttyUSB2=AT, ttyUSB3=AT(secondary)
+    # RM520NGL ttyUSB layout: USB0=DIAG, USB1=NMEA, USB2=AT, USB3=AT(secondary)
     for candidate in /dev/ttyUSB2 /dev/ttyUSB3 /dev/ttyUSB1 /dev/ttyUSB0; do
-        [ -c "$candidate" ] || continue
+        [ -c "$candidate" ] || { log_debug "skip $candidate (not found)"; continue; }
+        log_debug "Probing $candidate..."
         if _at_probe "$candidate"; then
             AT_PORT="$candidate"
             log_ok "AT port: $AT_PORT"
             return 0
         fi
+        log_debug "$candidate: no OK response"
     done
 
     die "No responsive AT command port found. Is the modem USB connected?"
 }
 
 # _at_probe PORT — sends AT and checks for OK response
+# Uses temp file to avoid subshell fd-inheritance issues in BusyBox ash.
+# stty is not available on vanilla OpenWrt — port is used as-is.
 _at_probe() {
     local port="$1"
-    local resp
-    stty -F "$port" "${AT_BAUD:-115200}" raw -echo 2>/dev/null || true
-    # Keep port open bidirectionally — avoids race where modem responds before
-    # a second open() for reading is issued, causing the reply to be lost.
+    local tmpf="/tmp/_at_probe_$$"
+    local rc=1
+    # Keep fd open across write+read so the kernel serial buffer is not lost
     exec 3<>"$port"
     printf 'AT\r\n' >&3
-    resp="$(timeout 2 head -c 64 <&3 2>/dev/null)"
+    timeout 2 head -c 64 <&3 > "$tmpf" 2>/dev/null
     exec 3>&-
-    printf '%s' "$resp" | grep -q 'OK'
+    grep -q 'OK' "$tmpf" 2>/dev/null && rc=0
+    rm -f "$tmpf"
+    return $rc
 }
 
-# at_cmd COMMAND — sends AT command and prints response
+# at_cmd COMMAND — sends AT command, returns response via stdout
 # Uses AT_PORT; call detect_at_port first.
 at_cmd() {
     local cmd="$1"
     [ -n "$AT_PORT" ] || die "AT_PORT not set; call detect_at_port first"
     log_debug "AT >> $cmd"
-    local resp
+    local tmpf="/tmp/_at_cmd_$$"
     exec 3<>"$AT_PORT"
     printf '%s\r\n' "$cmd" >&3
-    resp="$(timeout "${AT_TIMEOUT:-5}" head -c 512 <&3 2>/dev/null)"
+    timeout "${AT_TIMEOUT:-5}" head -c 512 <&3 > "$tmpf" 2>/dev/null
     exec 3>&-
+    local resp
+    resp="$(cat "$tmpf" 2>/dev/null)"
+    rm -f "$tmpf"
     log_debug "AT << $resp"
     printf '%s' "$resp"
 }
@@ -154,12 +160,11 @@ get_cell_info() {
 }
 
 # detect_wan_eth_iface — finds the ethernet interface connected to Waveshare board
-# Looks for DHCP offer in 192.168.225.x from any ethernet interface.
+# Looks for an interface with an IP in the 192.168.225.x range (modem DHCP subnet).
 detect_wan_eth_iface() {
     log_info "Detecting Waveshare GbE interface..."
     local iface
 
-    # Check which interfaces have a carrier but are not already configured as WAN
     for iface in $(ls /sys/class/net/); do
         case "$iface" in lo|br-*|wlan*|wwan*) continue ;; esac
         local carrier
@@ -168,8 +173,13 @@ detect_wan_eth_iface() {
 
         local cur_ip
         cur_ip="$(ip addr show "$iface" 2>/dev/null | awk '/inet /{print $2}' | head -1)"
-        # If this interface already has a 192.168.225.x address, it's our interface
-        case "$cur_ip" in 192.168.225.*) WAN_ETH_IFACE="$iface"; log_ok "GbE interface: $iface ($cur_ip)"; return 0 ;; esac
+        case "$cur_ip" in
+            192.168.225.*)
+                WAN_ETH_IFACE="$iface"
+                log_ok "GbE interface: $iface ($cur_ip)"
+                return 0
+                ;;
+        esac
     done
 
     log_warn "Could not auto-detect Waveshare GbE interface."
