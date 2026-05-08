@@ -38,9 +38,9 @@ _at_probe() {
     dpid=$!
     printf 'AT\r\n' >&3
     sleep 2
-    kill "$dpid" 2>/dev/null
-    wait "$dpid" 2>/dev/null
-    exec 3>&-
+    kill "$dpid" 2>/dev/null || true
+    wait "$dpid" 2>/dev/null || true
+    exec 3>&- 2>/dev/null || true
 
     grep -q 'OK' "$tmpf" 2>/dev/null
     rc=$?
@@ -72,9 +72,9 @@ at_cmd() {
         grep -qE 'OK|ERROR|\+CME ERROR' "$tmpf" 2>/dev/null && break
     done
 
-    kill "$dpid" 2>/dev/null
-    wait "$dpid" 2>/dev/null
-    exec 3>&-
+    kill "$dpid" 2>/dev/null || true
+    wait "$dpid" 2>/dev/null || true
+    exec 3>&- 2>/dev/null || true
 
     resp="$(cat "$tmpf" 2>/dev/null)"
     rm -f "$tmpf"
