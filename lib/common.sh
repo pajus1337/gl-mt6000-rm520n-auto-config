@@ -7,12 +7,11 @@ if [ -t 1 ]; then
     RED='\033[0;31m'
     GREEN='\033[0;32m'
     YELLOW='\033[1;33m'
-    BLUE='\033[0;34m'
-    CYAN='\033[0;36m'
+    CYAN='\033[1;36m'
     BOLD='\033[1m'
     RESET='\033[0m'
 else
-    RED='' GREEN='' YELLOW='' BLUE='' CYAN='' BOLD='' RESET=''
+    RED='' GREEN='' YELLOW='' CYAN='' BOLD='' RESET=''
 fi
 
 LOG_FILE="/tmp/rm520n-install.log"
@@ -37,7 +36,7 @@ log_error() {
 }
 
 log_step() {
-    printf "\n${BOLD}${BLUE}==> %s${RESET}\n" "$1"
+    printf "\n${BOLD}${CYAN}==> %s${RESET}\n" "$1"
     _log_raw "==> $1"
 }
 
@@ -95,10 +94,10 @@ wait_with_spinner() {
 # print_banner — show install header
 print_banner() {
     printf "\n"
-    printf "${BOLD}${BLUE}╔══════════════════════════════════════════════════╗${RESET}\n"
-    printf "${BOLD}${BLUE}║  GL-MT6000 + RM520NGL Auto-Config Installer      ║${RESET}\n"
-    printf "${BOLD}${BLUE}║  OpenWrt 25.12 / Waveshare 5G M.2 GbE Board     ║${RESET}\n"
-    printf "${BOLD}${BLUE}╚══════════════════════════════════════════════════╝${RESET}\n"
+    printf "${BOLD}${CYAN}╔══════════════════════════════════════════════════╗${RESET}\n"
+    printf "${BOLD}${CYAN}║  GL-MT6000 + RM520NGL Auto-Config Installer      ║${RESET}\n"
+    printf "${BOLD}${CYAN}║  OpenWrt 25.12 / Waveshare 5G M.2 GbE Board     ║${RESET}\n"
+    printf "${BOLD}${CYAN}╚══════════════════════════════════════════════════╝${RESET}\n"
     printf "\n"
 }
 

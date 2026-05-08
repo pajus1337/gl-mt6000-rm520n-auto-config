@@ -173,16 +173,16 @@ configure_pcie_eth_mode() {
     at_cmd 'AT+CFUN=1,1'
 }
 
-# get_signal — prints modem signal quality
+# get_signal — prints parsed modem signal quality (filters AT echo and URCs)
 get_signal() {
     [ -n "$AT_PORT" ] || return 1
-    at_cmd "AT+QCSQ"
+    at_cmd "AT+QCSQ" | grep '^\+QCSQ'
 }
 
-# get_cell_info — prints serving cell details
+# get_cell_info — prints parsed serving cell info
 get_cell_info() {
     [ -n "$AT_PORT" ] || return 1
-    at_cmd 'AT+QENG="servingcell"'
+    at_cmd 'AT+QENG="servingcell"' | grep '^\+QENG'
 }
 
 # detect_wan_eth_iface — finds ethernet interface with 192.168.225.x address

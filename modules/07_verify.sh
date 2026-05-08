@@ -80,10 +80,29 @@ module_verify() {
         _check "QMI device ($QMI_DEVICE)" "not found"
     fi
 
-    # Signal info
+    # Signal info — parse +QCSQ: "tech",rssi,rsrp,sinr,rsrq
     if [ -n "$AT_PORT" ]; then
         section_header "Modem Signal Info"
-        get_signal
+        local sig
+        sig="$(get_signal)"
+        if [ -n "$sig" ]; then
+            local tech rssi rsrp sinr rsrq
+            tech="$(printf '%s' "$sig" | cut -d, -f1 | tr -d '+QCSQ: "')"
+            rssi="$(printf '%s' "$sig" | cut -d, -f2)"
+            rsrp="$(printf '%s' "$sig" | cut -d, -f3)"
+            sinr="$(printf '%s' "$sig" | cut -d, -f4)"
+            rsrq="$(printf '%s' "$sig" | cut -d, -f5)"
+            printf "  Technology : %s\n"   "$tech"
+            printf "  RSSI       : %s dBm\n" "$rssi"
+            printf "  RSRP       : %s dBm\n" "$rsrp"
+            printf "  SINR       : %s dB\n"  "$sinr"
+            printf "  RSRQ       : %s dB\n"  "$rsrq"
+        else
+            printf "  Signal info unavailable\n"
+        fi
+        local cell
+        cell="$(get_cell_info)"
+        [ -n "$cell" ] && printf "  Cell info  : %s\n" "$cell"
         printf '\n'
     fi
 
