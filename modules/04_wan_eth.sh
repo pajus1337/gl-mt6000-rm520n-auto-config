@@ -1,0 +1,71 @@
+#!/bin/sh
+# Module 04 — WAN via Ethernet (Waveshare GbE bridge)
+# Configures the router's WAN interface to use the GbE port
+# connected to the Waveshare board. Modem acts as DHCP server
+# at 192.168.225.1; router becomes a DHCP client on that subnet.
+
+module_wan_eth() {
+    log_step "Module 04: WAN Ethernet configuration"
+
+    # Wait for GbE interface to appear after modem PCIe mode activation
+    log_info "Waiting for Waveshare GbE interface to get DHCP from modem..."
+    local attempts=0
+    WAN_ETH_IFACE=""
+
+    while [ -z "$WAN_ETH_IFACE" ] && [ "$attempts" -lt 12 ]; do
+        detect_wan_eth_iface && break
+        sleep 5
+        attempts=$(( attempts + 1 ))
+    done
+
+    if [ -z "$WAN_ETH_IFACE" ]; then
+        log_warn "Auto-detection failed. Available network interfaces:"
+        ip link show | awk -F': ' '/^[0-9]+:/{print "  " $2}'
+        printf "${YELLOW}Enter the ethernet interface connected to Waveshare board: ${RESET}"
+        read -r WAN_ETH_IFACE
+        [ -n "$WAN_ETH_IFACE" ] || die "Interface name cannot be empty"
+    fi
+
+    log_info "Configuring $WAN_ETH_IFACE as WAN (DHCP)..."
+
+    # Back up existing WAN config
+    local existing_device
+    existing_device="$(uci get "network.${WAN_IFACE}.device" 2>/dev/null)"
+    if [ -n "$existing_device" ] && [ "$existing_device" != "$WAN_ETH_IFACE" ]; then
+        log_warn "Replacing existing WAN device: $existing_device → $WAN_ETH_IFACE"
+        uci set "network.${WAN_IFACE}_backup=interface"
+        uci set "network.${WAN_IFACE}_backup.device=$existing_device"
+        uci set "network.${WAN_IFACE}_backup.proto=dhcp"
+        uci set "network.${WAN_IFACE}_backup.auto=0"
+    fi
+
+    # Create or update WAN interface
+    if ! iface_exists "$WAN_IFACE"; then
+        uci set "network.${WAN_IFACE}=interface"
+    fi
+    uci set "network.${WAN_IFACE}.device=$WAN_ETH_IFACE"
+    uci set "network.${WAN_IFACE}.proto=dhcp"
+
+    # Commit and restart network
+    uci commit network
+    log_info "Restarting network..."
+    service network restart
+
+    # Wait for interface to come up
+    log_info "Waiting for WAN DHCP lease from modem..."
+    local wait=0
+    while [ "$wait" -lt 30 ]; do
+        local ip
+        ip="$(ubus call network.interface."$WAN_IFACE" status 2>/dev/null | grep '"address"' | head -1 | grep -o '"192\.168\.225\.[0-9]*"')"
+        if [ -n "$ip" ]; then
+            log_ok "WAN interface $WAN_ETH_IFACE got IP: $ip"
+            log_ok "Modem gateway: $MODEM_GW_IP"
+            return 0
+        fi
+        sleep 2
+        wait=$(( wait + 2 ))
+    done
+
+    log_warn "WAN did not get a DHCP lease within 30s."
+    log_warn "Check that the GbE cable is connected to the Waveshare board."
+}
