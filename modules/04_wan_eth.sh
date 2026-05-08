@@ -59,19 +59,21 @@ module_wan_eth() {
     log_info "Restarting network..."
     service network restart
 
-    # Wait for interface to come up
+    # Wait for interface to come up — use ip addr (ubus may block after network restart)
     log_info "Waiting for WAN DHCP lease from modem..."
-    local wait=0
-    while [ "$wait" -lt 30 ]; do
+    local elapsed=0
+    while [ "$elapsed" -lt 30 ]; do
         local ip
-        ip="$(ubus call network.interface."$WAN_IFACE" status 2>/dev/null | grep '"address"' | head -1 | grep -o '"192\.168\.225\.[0-9]*"')"
-        if [ -n "$ip" ]; then
-            log_ok "WAN interface $WAN_ETH_IFACE got IP: $ip"
-            log_ok "Modem gateway: $MODEM_GW_IP"
-            return 0
-        fi
+        ip="$(ip addr show "$WAN_ETH_IFACE" 2>/dev/null | awk '/inet /{print $2}' | head -1)"
+        case "$ip" in
+            192.168.22[0-9].*|192.168.2[0-2][0-9].*)
+                log_ok "WAN interface $WAN_ETH_IFACE got IP: $ip"
+                log_ok "Modem gateway: $MODEM_GW_IP"
+                return 0
+                ;;
+        esac
         sleep 2
-        wait=$(( wait + 2 ))
+        elapsed=$(( elapsed + 2 ))
     done
 
     log_warn "WAN did not get a DHCP lease within 30s."
