@@ -24,9 +24,15 @@ detect_at_port() {
 # _at_probe PORT — sends AT and checks for OK response
 _at_probe() {
     local port="$1"
-    printf 'AT\r\n' > "$port" 2>/dev/null || return 1
-    # timeout required — serial ports never send EOF, head would block forever
-    timeout 2 head -c 64 < "$port" 2>/dev/null | grep -q 'OK'
+    local resp
+    stty -F "$port" "${AT_BAUD:-115200}" raw -echo 2>/dev/null || true
+    # Keep port open bidirectionally — avoids race where modem responds before
+    # a second open() for reading is issued, causing the reply to be lost.
+    exec 3<>"$port"
+    printf 'AT\r\n' >&3
+    resp="$(timeout 2 head -c 64 <&3 2>/dev/null)"
+    exec 3>&-
+    printf '%s' "$resp" | grep -q 'OK'
 }
 
 # at_cmd COMMAND — sends AT command and prints response
@@ -35,10 +41,11 @@ at_cmd() {
     local cmd="$1"
     [ -n "$AT_PORT" ] || die "AT_PORT not set; call detect_at_port first"
     log_debug "AT >> $cmd"
-    printf '%s\r\n' "$cmd" > "$AT_PORT"
-    sleep 0.3
     local resp
-    resp="$(timeout "${AT_TIMEOUT:-5}" head -c 512 < "$AT_PORT" 2>/dev/null)"
+    exec 3<>"$AT_PORT"
+    printf '%s\r\n' "$cmd" >&3
+    resp="$(timeout "${AT_TIMEOUT:-5}" head -c 512 <&3 2>/dev/null)"
+    exec 3>&-
     log_debug "AT << $resp"
     printf '%s' "$resp"
 }
