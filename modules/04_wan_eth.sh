@@ -7,11 +7,19 @@
 module_wan_eth() {
     log_step "Module 04: WAN Ethernet configuration"
 
-    # Wait for GbE interface to appear after modem PCIe mode activation
-    log_info "Waiting for Waveshare GbE interface to get DHCP from modem..."
+    # Prompt user to connect the GbE cable before we start polling
+    printf "\n"
+    printf "${BOLD}  ACTION REQUIRED${RESET}\n"
+    printf "  Connect the Waveshare board GbE port to the router WAN/LAN port now.\n"
+    printf "  The modem will assign an IP in the %s range.\n" "$MODEM_SUBNET"
+    printf "\n"
+    printf "${YELLOW}  Press Enter when the cable is connected...${RESET}"
+    read -r _dummy
+
     local attempts=0
     WAN_ETH_IFACE=""
 
+    log_info "Waiting for Waveshare GbE interface to get DHCP from modem..."
     while [ -z "$WAN_ETH_IFACE" ] && [ "$attempts" -lt 12 ]; do
         detect_wan_eth_iface && break
         sleep 5
