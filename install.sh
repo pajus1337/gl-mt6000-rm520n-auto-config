@@ -2,7 +2,7 @@
 # GL-MT6000 + RM520NGL Auto-Config Installer
 #
 # Usage (local):  sh install.sh [options]
-# Usage (remote): curl -fsSL https://raw.githubusercontent.com/pajus1337/gl-mt6000-rm520n-auto-config/main/install.sh | sh
+# Usage (remote): wget -qO- https://raw.githubusercontent.com/pajus1337/gl-mt6000-rm520n-auto-config/master/install.sh | sh
 #
 # Options:
 #   --dry-run    Show what would be done without making changes
@@ -12,7 +12,10 @@
 
 set -e
 
-# ── Script location detection (local vs piped) ──────────────────────────────
+REPO_URL="https://raw.githubusercontent.com/pajus1337/gl-mt6000-rm520n-auto-config/master"
+
+# ── Script location detection ────────────────────────────────────────────────
+# Returns local dir if running from a real checkout, or empty string.
 _detect_install_dir() {
     case "$0" in
         *install.sh)
@@ -24,18 +27,53 @@ _detect_install_dir() {
             fi
             ;;
     esac
-    # Running piped or from unknown location — download files
     printf ''
 }
 
 INSTALL_DIR="$(_detect_install_dir)"
-REMOTE_MODE=0
 
 if [ -z "$INSTALL_DIR" ]; then
-    REMOTE_MODE=1
-    INSTALL_DIR="/tmp/rm520n-setup-$$"
-    mkdir -p "$INSTALL_DIR"
+    # Running piped (wget URL | sh) — stdin is the pipe, not a terminal.
+    # Download all files, then re-exec from disk with /dev/tty so interactive
+    # prompts work correctly.
+    TMP_SETUP="/tmp/rm520n-setup-$$"
+    mkdir -p "$TMP_SETUP/config" "$TMP_SETUP/lib" "$TMP_SETUP/modules" "$TMP_SETUP/optional"
+
+    printf 'Downloading installer from GitHub...\n'
+    for f in \
+        install.sh \
+        config/defaults.conf \
+        lib/common.sh \
+        lib/openwrt.sh \
+        lib/modem.sh \
+        modules/01_preflight.sh \
+        modules/02_packages.sh \
+        modules/03_usb_setup.sh \
+        modules/04_wan_eth.sh \
+        modules/05_luci_modem.sh \
+        modules/06_firewall.sh \
+        modules/07_verify.sh \
+        optional/usb_only_mode.sh
+    do
+        if ! wget -qO "${TMP_SETUP}/${f}" "${REPO_URL}/${f}"; then
+            printf 'ERROR: Failed to download %s\n' "$f" >&2
+            rm -rf "$TMP_SETUP"
+            exit 1
+        fi
+        printf '  %s\n' "$f"
+    done
+    printf '\n'
+
+    chmod +x "${TMP_SETUP}/install.sh"
+    exec sh "${TMP_SETUP}/install.sh" "$@" </dev/tty
+    # exec replaces this process — nothing below runs in piped mode
 fi
+
+# ── From here: always running from a real directory with stdin = terminal ────
+
+# Detect temp dir so we can clean up at the end
+REMOTE_MODE=0
+case "$INSTALL_DIR" in /tmp/rm520n-setup-*) REMOTE_MODE=1 ;; esac
 
 # ── Parse arguments ──────────────────────────────────────────────────────────
 DRY_RUN=0
@@ -76,67 +114,19 @@ done
 
 export DEBUG DRY_RUN
 
-# ── Remote mode: download all files ─────────────────────────────────────────
-_download_files() {
-    local base_url="$1"
-    local dir="$2"
-
-    mkdir -p "$dir/config" "$dir/lib" "$dir/modules" "$dir/optional"
-
-    printf 'Downloading installer files from GitHub...\n'
-
-    for f in \
-        config/defaults.conf \
-        lib/common.sh \
-        lib/openwrt.sh \
-        lib/modem.sh \
-        modules/01_preflight.sh \
-        modules/02_packages.sh \
-        modules/03_usb_setup.sh \
-        modules/04_wan_eth.sh \
-        modules/05_luci_modem.sh \
-        modules/06_firewall.sh \
-        modules/07_verify.sh \
-        optional/usb_only_mode.sh
-    do
-        if ! wget -qO "${dir}/${f}" "${base_url}/${f}"; then
-            printf 'ERROR: Failed to download %s\n' "$f" >&2
-            exit 1
-        fi
-        printf '  Downloaded: %s\n' "$f"
-    done
-    printf 'Download complete.\n\n'
-}
-
-# ── Bootstrap ────────────────────────────────────────────────────────────────
-
-# Load defaults first so REPO_URL is available
-. "${INSTALL_DIR}/config/defaults.conf" 2>/dev/null || {
-    if [ "$REMOTE_MODE" = "1" ]; then
-        # Minimal defaults for download phase
-        REPO_URL="https://raw.githubusercontent.com/pajus1337/gl-mt6000-rm520n-auto-config/main"
-        _download_files "$REPO_URL" "$INSTALL_DIR"
-        . "${INSTALL_DIR}/config/defaults.conf"
-    else
-        printf 'ERROR: config/defaults.conf not found.\n' >&2
-        exit 1
-    fi
-}
-
-if [ "$REMOTE_MODE" = "1" ]; then
-    _download_files "$REPO_URL" "$INSTALL_DIR"
-    . "${INSTALL_DIR}/config/defaults.conf"
+# ── Load config, libraries, modules ─────────────────────────────────────────
+if [ ! -f "${INSTALL_DIR}/config/defaults.conf" ]; then
+    printf 'ERROR: config/defaults.conf not found in %s\n' "$INSTALL_DIR" >&2
+    exit 1
 fi
 
-# Override defaults with user config if it exists
+. "${INSTALL_DIR}/config/defaults.conf"
 [ -f "${INSTALL_DIR}/config/user.conf" ] && . "${INSTALL_DIR}/config/user.conf"
 
-# Load libraries
 . "${INSTALL_DIR}/lib/common.sh"
 . "${INSTALL_DIR}/lib/openwrt.sh"
 . "${INSTALL_DIR}/lib/modem.sh"
 
-# Load modules
 . "${INSTALL_DIR}/modules/01_preflight.sh"
 . "${INSTALL_DIR}/modules/02_packages.sh"
 . "${INSTALL_DIR}/modules/03_usb_setup.sh"

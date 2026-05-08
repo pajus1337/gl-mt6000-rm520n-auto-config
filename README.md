@@ -67,9 +67,9 @@ Your devices on the LAN still connect as usual through `192.168.1.1` — nothing
 
 ## Quick Install
 
-**Option A — One-liner (curl):**
+**Option A — One-liner (wget):**
 ```sh
-curl -fsSL https://raw.githubusercontent.com/pajus1337/gl-mt6000-rm520n-auto-config/master/install.sh | sh
+wget -qO- https://raw.githubusercontent.com/pajus1337/gl-mt6000-rm520n-auto-config/master/install.sh | sh
 ```
 
 **Option B — Clone and run locally:**
