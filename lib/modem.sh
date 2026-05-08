@@ -1,6 +1,11 @@
 #!/bin/sh
 # Modem detection, AT command interface, and QMI helpers for RM520NGL.
 # Source this file; do not execute directly.
+#
+# BusyBox constraints (vanilla OpenWrt):
+#   - no timeout, no stty, no lsusb
+#   - sleep accepts integers only (no 0.x)
+#   - exec N<>file and background dd used for serial I/O
 
 # detect_at_port — finds the AT command serial port and sets AT_PORT
 detect_at_port() {
@@ -21,35 +26,56 @@ detect_at_port() {
     die "No responsive AT command port found. Is the modem USB connected?"
 }
 
-# _at_probe PORT — sends AT and checks for OK response
-# Uses temp file to avoid subshell fd-inheritance issues in BusyBox ash.
-# stty is not available on vanilla OpenWrt — port is used as-is.
+# _at_probe PORT — sends AT, returns 0 if modem replies with OK
 _at_probe() {
     local port="$1"
     local tmpf="/tmp/_at_probe_$$"
-    local rc=1
-    # Keep fd open across write+read so the kernel serial buffer is not lost
+    local dpid rc
+
     exec 3<>"$port"
+    # Start background reader from the open fd before sending the command
+    dd <&3 of="$tmpf" bs=1 count=128 2>/dev/null &
+    dpid=$!
     printf 'AT\r\n' >&3
-    timeout 2 head -c 64 <&3 > "$tmpf" 2>/dev/null
+    sleep 2
+    kill "$dpid" 2>/dev/null
+    wait "$dpid" 2>/dev/null
     exec 3>&-
-    grep -q 'OK' "$tmpf" 2>/dev/null && rc=0
+
+    grep -q 'OK' "$tmpf" 2>/dev/null
+    rc=$?
     rm -f "$tmpf"
     return $rc
 }
 
 # at_cmd COMMAND — sends AT command, returns response via stdout
 # Uses AT_PORT; call detect_at_port first.
+# Polls output every second and returns as soon as OK/ERROR is seen.
 at_cmd() {
     local cmd="$1"
     [ -n "$AT_PORT" ] || die "AT_PORT not set; call detect_at_port first"
     log_debug "AT >> $cmd"
+
     local tmpf="/tmp/_at_cmd_$$"
+    local dpid i resp
+    local max="${AT_TIMEOUT:-5}"
+
     exec 3<>"$AT_PORT"
+    dd <&3 of="$tmpf" bs=1 count=512 2>/dev/null &
+    dpid=$!
     printf '%s\r\n' "$cmd" >&3
-    timeout "${AT_TIMEOUT:-5}" head -c 512 <&3 > "$tmpf" 2>/dev/null
+
+    i=0
+    while [ "$i" -lt "$max" ]; do
+        sleep 1
+        i=$(( i + 1 ))
+        grep -qE 'OK|ERROR|\+CME ERROR' "$tmpf" 2>/dev/null && break
+    done
+
+    kill "$dpid" 2>/dev/null
+    wait "$dpid" 2>/dev/null
     exec 3>&-
-    local resp
+
     resp="$(cat "$tmpf" 2>/dev/null)"
     rm -f "$tmpf"
     log_debug "AT << $resp"
@@ -67,7 +93,7 @@ at_cmd_expect() {
 }
 
 # detect_usb_modem — returns 0 if RM520NGL USB device is present
-# Uses sysfs (lsusb is not available on vanilla OpenWrt)
+# Uses sysfs (lsusb not available on vanilla OpenWrt)
 detect_usb_modem() {
     local vid pid
     for vid in /sys/bus/usb/devices/*/idVendor; do
@@ -147,7 +173,7 @@ configure_pcie_eth_mode() {
     at_cmd 'AT+CFUN=1,1'
 }
 
-# get_signal — prints a summary of modem signal quality
+# get_signal — prints modem signal quality
 get_signal() {
     [ -n "$AT_PORT" ] || return 1
     at_cmd "AT+QCSQ"
@@ -159,19 +185,15 @@ get_cell_info() {
     at_cmd 'AT+QENG="servingcell"'
 }
 
-# detect_wan_eth_iface — finds the ethernet interface connected to Waveshare board
-# Looks for an interface with an IP in the 192.168.225.x range (modem DHCP subnet).
+# detect_wan_eth_iface — finds ethernet interface with 192.168.225.x address
 detect_wan_eth_iface() {
     log_info "Detecting Waveshare GbE interface..."
-    local iface
+    local iface carrier cur_ip
 
     for iface in $(ls /sys/class/net/); do
         case "$iface" in lo|br-*|wlan*|wwan*) continue ;; esac
-        local carrier
         carrier="$(cat /sys/class/net/$iface/carrier 2>/dev/null)"
         [ "$carrier" = "1" ] || continue
-
-        local cur_ip
         cur_ip="$(ip addr show "$iface" 2>/dev/null | awk '/inet /{print $2}' | head -1)"
         case "$cur_ip" in
             192.168.225.*)
@@ -183,7 +205,6 @@ detect_wan_eth_iface() {
     done
 
     log_warn "Could not auto-detect Waveshare GbE interface."
-    log_warn "After modem reboot, re-run this module or set WAN_ETH_IFACE manually."
     WAN_ETH_IFACE=""
     return 1
 }

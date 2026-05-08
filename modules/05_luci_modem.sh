@@ -62,9 +62,17 @@ for p in /dev/ttyUSB2 /dev/ttyUSB3 /dev/ttyUSB1; do
     [ -c "$p" ] && AT_PORT="$p" && break
 done
 [ -n "$AT_PORT" ] || exit 0
-printf 'AT+QCSQ\r\n' > "$AT_PORT"
-sleep 0.5
-logger -t modem-signal "$(timeout 3 head -c 128 < "$AT_PORT" 2>/dev/null)"
+tmpf="/tmp/_hotplug_sig_$$"
+exec 3<>"$AT_PORT"
+dd <&3 of="$tmpf" bs=1 count=128 2>/dev/null &
+dpid=$!
+printf 'AT+QCSQ\r\n' >&3
+sleep 2
+kill "$dpid" 2>/dev/null
+wait "$dpid" 2>/dev/null
+exec 3>&-
+logger -t modem-signal "$(cat "$tmpf" 2>/dev/null)"
+rm -f "$tmpf"
 EOF
 
     chmod +x "${hotplug_dir}/99-modem-signal"
