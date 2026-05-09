@@ -85,6 +85,16 @@ _configure_apn() {
         printf 'APN="%s"\n' "$APN" >> "$INSTALL_DIR/config/user.conf"
     fi
 
+    # Check if PDP context 1 is already configured with the correct APN.
+    # Sending AT+CGDCONT resets the bearer and drops the active data session,
+    # so skip it when nothing has changed.
+    local cur_apn
+    cur_apn="$(at_cmd 'AT+CGDCONT?' | awk -F'"' '/\+CGDCONT: 1,/{print $4}')"
+    if [ "$cur_apn" = "$APN" ]; then
+        log_ok "APN already configured: $APN"
+        return 0
+    fi
+
     log_info "Setting APN: $APN"
     at_cmd_expect "AT+CGDCONT=1,\"${PDP_TYPE}\",\"${APN}\"" "OK"
     log_ok "APN configured: $APN"

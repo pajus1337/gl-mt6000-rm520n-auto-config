@@ -45,11 +45,25 @@ module_verify() {
         _check "Ping modem ($MODEM_GW_IP)" "no response"
     fi
 
-    # 4. Ping internet
-    if ping -c 2 -W 5 8.8.8.8 >/dev/null 2>&1; then
+    # 4. Ping internet — modem may still be establishing its 5G connection,
+    #    so retry for up to 60s before declaring failure.
+    local inet_ok=0
+    local inet_elapsed=0
+    printf "  [....] Waiting for internet connectivity"
+    while [ "$inet_elapsed" -lt 60 ]; do
+        if ping -c 1 -W 3 8.8.8.8 >/dev/null 2>&1; then
+            inet_ok=1
+            break
+        fi
+        printf "."
+        sleep 3
+        inet_elapsed=$(( inet_elapsed + 3 ))
+    done
+    printf "\r\033[K"
+    if [ "$inet_ok" = "1" ]; then
         _check "Ping internet (8.8.8.8)" "ok"
     else
-        _check "Ping internet (8.8.8.8)" "failed"
+        _check "Ping internet (8.8.8.8)" "failed — modem may still be connecting; retry in ~30s"
     fi
 
     # 5. DNS resolution
