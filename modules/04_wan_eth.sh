@@ -53,6 +53,12 @@ module_wan_eth() {
     fi
     uci set "network.${WAN_IFACE}.device=$WAN_ETH_IFACE"
     uci set "network.${WAN_IFACE}.proto=dhcp"
+    # Remove any stale static-IP options that would conflict with DHCP
+    uci delete "network.${WAN_IFACE}.ipaddr"   2>/dev/null || true
+    uci delete "network.${WAN_IFACE}.netmask"  2>/dev/null || true
+    uci delete "network.${WAN_IFACE}.gateway"  2>/dev/null || true
+    uci delete "network.${WAN_IFACE}.ip6addr"  2>/dev/null || true
+    uci delete "network.${WAN_IFACE}.ip6gw"    2>/dev/null || true
 
     # Commit and restart network
     uci commit network
