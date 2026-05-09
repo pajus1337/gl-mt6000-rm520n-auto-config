@@ -53,6 +53,15 @@ module_usb_setup() {
     [ "$cur_pcie" = "1" ] || die "Modem did not switch to PCIe mode (pcie/mode=$cur_pcie)"
     log_ok "Modem in PCIe/GbE mode"
 
+    # Always (re-)apply settings that survive independently of the mode switch.
+    # AT+QMAPWAC=1 enables WWAN auto-connect in PCIe/GbE mode; it resets to 0
+    # after a firmware upgrade even when pcie/mode was already 1, so skipping
+    # configure_pcie_eth_mode() would leave the modem with no data session.
+    log_info "Ensuring WWAN auto-connect and RTL8125 driver are active..."
+    at_cmd_expect 'AT+QETH="eth_driver","r8125",1' "OK"
+    at_cmd_expect 'AT+QMAPWAC=1' "OK"
+    log_ok "WWAN auto-connect enabled"
+
     # Configure APN if not already set
     _configure_apn
 
