@@ -79,6 +79,11 @@ get_free_space_kb() {
     df -k "${1:-/overlay}" 2>/dev/null | awk 'NR==2{print $4}'
 }
 
+# wan_has_global_ipv6 IFACE — returns 0 if the interface has a global-scope IPv6 address
+wan_has_global_ipv6() {
+    ip -6 addr show dev "$1" scope global 2>/dev/null | grep -q "inet6"
+}
+
 # wait_for_netifd — waits until netifd is ready
 wait_for_netifd() {
     local tries=0

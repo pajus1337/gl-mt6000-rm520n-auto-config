@@ -75,6 +75,7 @@ module_wan_eth() {
             192.168.22[0-9].*|192.168.2[0-2][0-9].*)
                 log_ok "WAN interface $WAN_ETH_IFACE got IP: $ip"
                 log_ok "Modem gateway: $MODEM_GW_IP"
+                configure_lan_ipv6_fallback
                 return 0
                 ;;
         esac
@@ -84,4 +85,28 @@ module_wan_eth() {
 
     log_warn "WAN did not get a DHCP lease within 30s."
     log_warn "Check that the GbE cable is connected to the Waveshare board."
+}
+
+# The modem hands out IPv4-only DHCP on its private GbE subnet — no delegated
+# IPv6 prefix ever reaches the LAN this way. Left alone, odhcpd still emits RAs
+# with ra_lifetime=0 for that reason (harmless log noise, but clients that try
+# IPv6-first can see a brief happy-eyeballs delay). Since there is no IPv6 on
+# WAN in this setup, disable RA/DHCPv6/NDP on LAN — but only when the WAN
+# interface truly has no global IPv6 address, so this self-corrects if a future
+# firmware/APN ever does provide one.
+configure_lan_ipv6_fallback() {
+    uci -q get dhcp.lan >/dev/null 2>&1 || return 0
+
+    if wan_has_global_ipv6 "$WAN_ETH_IFACE"; then
+        log_ok "Global IPv6 present on WAN — leaving LAN IPv6 services untouched"
+        return 0
+    fi
+
+    log_info "No global IPv6 on WAN — disabling LAN RA/DHCPv6/NDP to avoid odhcpd fallback delays"
+    uci set dhcp.lan.ra='disabled'
+    uci set dhcp.lan.dhcpv6='disabled'
+    uci set dhcp.lan.ndp='disabled'
+    uci commit dhcp
+    service odhcpd restart 2>/dev/null || true
+    log_ok "LAN IPv6 RA/DHCPv6/NDP disabled"
 }

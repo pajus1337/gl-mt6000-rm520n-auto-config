@@ -50,23 +50,11 @@ module_firewall() {
         uci set "${wan_zone}.mtu_fix=1"
     fi
 
-    # MSS clamping for the WAN interface (important for 5G/PPP-over-GbE path)
-    # Prevents oversized TCP segments from causing connection issues.
-    local rule_exists
-    rule_exists="$(uci show firewall | grep -c "mss_clamp" 2>/dev/null || true)"
-    if [ "${rule_exists:-0}" -eq 0 ]; then
-        local new_rule
-        new_rule="$(uci add firewall rule)"
-        uci set "firewall.${new_rule}.name=mss_clamp_wan"
-        uci set "firewall.${new_rule}.src=wan"
-        uci set "firewall.${new_rule}.proto=tcp"
-        uci set "firewall.${new_rule}.tcp_flags=SYN,RST:SYN"
-        uci set "firewall.${new_rule}.target=TCPMSS"
-        uci set "firewall.${new_rule}.set_mss=clamp-to-pmtu"
-        log_ok "MSS clamping rule added"
-    else
-        log_ok "MSS clamping rule already present"
-    fi
+    # MSS clamping for the WAN interface (important for 5G/PPP-over-GbE path):
+    # fw4 clamps MSS to path MTU natively via the zone's mtu_fix option — already
+    # set above. There is no "TCPMSS" rule target under fw4/nftables; a custom
+    # `config rule` using it is rejected outright by the schema, so no separate
+    # rule is created here.
 
     uci commit firewall
     service firewall reload
