@@ -207,6 +207,14 @@ dpid=$!; printf 'AT\r\n' >&3; sleep 2; kill $dpid; wait $dpid; exec 3>&-; cat /t
 Firmware `RM520NGLAAR03A01M4G` (A03) may not activate the full PCIe→RTL8125 path.
 Update to A05+ firmware for best throughput.
 
+**`wwan_mgmt` shows "Absent" / disconnected in LuCI → Network → Interfaces:**
+This is expected, not an error. The installer creates this QMI interface with `auto='0'`
+(module 05) purely so LuCI recognizes the modem device — it is intentionally never brought up,
+since the actual data path is the GbE/PCIe link (module 04), not QMI. No RX/TX and a
+disconnected status here is the normal, permanent state. There is no need to configure, enable,
+or troubleshoot this interface — use the [luci-app-rm520n](https://github.com/pajus1337/luci-app-rm520n)
+dashboard instead for live modem status.
+
 **Full install log:**
 ```sh
 cat /tmp/rm520n-install.log
