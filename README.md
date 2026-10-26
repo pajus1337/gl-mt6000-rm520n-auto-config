@@ -226,13 +226,19 @@ cat /tmp/rm520n-install.log
 
 | Component | Tested version |
 |---|---|
-| OpenWrt | 25.12.3 |
-| Kernel | 6.12.85 |
+| OpenWrt | 25.12.3 (installer), 25.12.6 (setup kept working after upgrading from 25.12.5) |
+| Kernel | 6.12.85, 6.12.112 |
 | BusyBox | 1.37.0 |
-| Modem firmware | RM520NGLAAR03A01M4G |
+| Modem firmware | RM520NGLAAR03A01M4G, RM520NGLAAR03A03M4G |
 
 > **Note:** This installer uses `apk` (not `opkg`) and requires OpenWrt **25.12 or later**.
 > It will not work on 24.10 or older releases.
+
+> **Firmware upgrades:** a `sysupgrade` with "keep settings" preserves the network, firewall and
+> APN configuration, and the modem keeps its own PCIe/GbE settings, so the WAN works right after
+> the upgrade. The added packages (`kmod-usb-serial-option`, `kmod-usb-net-qmi-wwan`, `uqmi`,
+> `luci-proto-qmi`, `coreutils-stty`) and the signal-logging hotplug script are removed; reinstall
+> them, or simply run the installer again.
 
 ---
 
