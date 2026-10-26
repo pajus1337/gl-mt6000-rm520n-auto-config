@@ -236,9 +236,9 @@ cat /tmp/rm520n-install.log
 
 > **Firmware upgrades:** a `sysupgrade` with "keep settings" preserves the network, firewall and
 > APN configuration, and the modem keeps its own PCIe/GbE settings, so the WAN works right after
-> the upgrade. The added packages (`kmod-usb-serial-option`, `kmod-usb-net-qmi-wwan`, `uqmi`,
-> `luci-proto-qmi`, `coreutils-stty`) and the signal-logging hotplug script are removed; reinstall
-> them, or simply run the installer again.
+> the upgrade. The signal-logging hotplug script is listed in `/etc/sysupgrade.conf` and kept.
+> The added packages (`kmod-usb-serial-option`, `kmod-usb-net-qmi-wwan`, `uqmi`, `luci-proto-qmi`,
+> `coreutils-stty`) are not part of the stock image; reinstall them, or simply run the installer again.
 
 ---
 

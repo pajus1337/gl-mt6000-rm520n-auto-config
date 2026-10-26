@@ -76,5 +76,9 @@ rm -f "$tmpf"
 EOF
 
     chmod +x "${hotplug_dir}/99-modem-signal"
+
+    # Not owned by any package, so keep it across firmware upgrades explicitly
+    grep -qxF "${hotplug_dir}/99-modem-signal" /etc/sysupgrade.conf 2>/dev/null \
+        || printf '%s\n' "${hotplug_dir}/99-modem-signal" >> /etc/sysupgrade.conf
     log_ok "Signal logging hotplug script installed"
 }
