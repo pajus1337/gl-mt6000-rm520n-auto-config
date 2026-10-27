@@ -9,7 +9,7 @@
 
 ## Overview
 
-This project solves the tedious manual process of setting up a 5G modem on a fresh OpenWrt installation. It handles everything — package installation, modem AT configuration, WAN interface setup, firewall rules, and post-install verification — in a single modular script.
+This project solves the tedious manual process of setting up a 5G modem on a fresh OpenWrt installation. It handles everything - package installation, modem AT configuration, WAN interface setup, firewall rules, and post-install verification - in a single modular script.
 
 **Hardware this was built and tested on:**
 
@@ -41,10 +41,10 @@ The Waveshare carrier board exposes two interfaces to the router:
   (192.168.225.x)    (AT commands / QMI)
 ```
 
-- **GbE port** → router WAN — modem acts as DHCP server (`192.168.225.1`), router gets an IP in `192.168.225.x/22` range. This is your internet data path.
-- **USB 3.1 port** → router USB — exposes AT command ports (`/dev/ttyUSBx`) and QMI device (`/dev/cdc-wdm0`) for modem monitoring in LuCI.
+- **GbE port** → router WAN - modem acts as DHCP server (`192.168.225.1`), router gets an IP in `192.168.225.x/22` range. This is your internet data path.
+- **USB 3.1 port** → router USB - exposes AT command ports (`/dev/ttyUSBx`) and QMI device (`/dev/cdc-wdm0`) for modem monitoring in LuCI.
 
-Your devices on the LAN still connect as usual through `192.168.1.1` — nothing changes for them.
+Your devices on the LAN still connect as usual through `192.168.1.1` - nothing changes for them.
 
 ---
 
@@ -67,12 +67,12 @@ Your devices on the LAN still connect as usual through `192.168.1.1` — nothing
 
 ## Quick Install
 
-**Option A — One-liner (wget):**
+**Option A - One-liner (wget):**
 ```sh
 wget -qO- https://raw.githubusercontent.com/pajus1337/gl-mt6000-rm520n-auto-config/master/install.sh | sh
 ```
 
-**Option B — Clone and run locally:**
+**Option B - Clone and run locally:**
 ```sh
 cd /root
 git clone https://github.com/pajus1337/gl-mt6000-rm520n-auto-config.git
@@ -101,11 +101,11 @@ The installation is split into independent modules that run in sequence:
 **Installed packages:**
 
 ```
-kmod-usb-serial-option   — AT command serial ports (ttyUSBx)
-kmod-usb-net-qmi-wwan    — QMI WWAN kernel driver
-kmod-usb-wdm             — USB device management (cdc-wdm)
-uqmi                     — QMI userspace tools
-luci-proto-qmi           — LuCI QMI protocol integration
+kmod-usb-serial-option   - AT command serial ports (ttyUSBx)
+kmod-usb-net-qmi-wwan    - QMI WWAN kernel driver
+kmod-usb-wdm             - USB device management (cdc-wdm)
+uqmi                     - QMI userspace tools
+luci-proto-qmi           - LuCI QMI protocol integration
 ```
 
 ---
@@ -117,7 +117,7 @@ luci-proto-qmi           — LuCI QMI protocol integration
 
   --dry-run    Show what would be done without making changes
   --debug      Verbose output including AT command I/O
-  --usb-only   USB-only mode — data + management via USB (TODO)
+  --usb-only   USB-only mode - data + management via USB (TODO)
   --help       Show help
 ```
 
@@ -209,10 +209,10 @@ Update to A05+ firmware for best throughput.
 
 **`wwan_mgmt` shows "Absent" / disconnected in LuCI → Network → Interfaces:**
 This is expected, not an error. The installer creates this QMI interface with `auto='0'`
-(module 05) purely so LuCI recognizes the modem device — it is intentionally never brought up,
+(module 05) purely so LuCI recognizes the modem device - it is intentionally never brought up,
 since the actual data path is the GbE/PCIe link (module 04), not QMI. No RX/TX and a
 disconnected status here is the normal, permanent state. There is no need to configure, enable,
-or troubleshoot this interface — use the [luci-app-rm520n](https://github.com/pajus1337/luci-app-rm520n)
+or troubleshoot this interface - use the [luci-app-rm520n](https://github.com/pajus1337/luci-app-rm520n)
 dashboard instead for live modem status.
 
 **Full install log:**
@@ -244,7 +244,7 @@ cat /tmp/rm520n-install.log
 
 ## Related Projects
 
-- [luci-app-rm520n](https://github.com/pajus1337/luci-app-rm520n) — LuCI modem management panel (signal, band locking, APN, diagnostics)
+- [luci-app-rm520n](https://github.com/pajus1337/luci-app-rm520n) - LuCI modem management panel (signal, band locking, APN, diagnostics)
 
 ---
 

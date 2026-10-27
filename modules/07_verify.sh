@@ -1,5 +1,5 @@
 #!/bin/sh
-# Module 07 — Post-install verification
+# Module 07 - Post-install verification
 # Runs a series of health checks and prints a summary.
 
 module_verify() {
@@ -15,7 +15,7 @@ module_verify() {
             log_ok "$label"
             ok=$(( ok + 1 ))
         else
-            log_error "$label — $result"
+            log_error "$label - $result"
             fail=$(( fail + 1 ))
         fi
     }
@@ -45,7 +45,7 @@ module_verify() {
         _check "Ping modem ($MODEM_GW_IP)" "no response"
     fi
 
-    # 4. Ping internet — modem may still be establishing its 5G connection,
+    # 4. Ping internet - modem may still be establishing its 5G connection,
     #    so retry for up to 60s before declaring failure.
     local inet_ok=0
     local inet_elapsed=0
@@ -63,7 +63,7 @@ module_verify() {
     if [ "$inet_ok" = "1" ]; then
         _check "Ping internet (8.8.8.8)" "ok"
     else
-        _check "Ping internet (8.8.8.8)" "failed — modem may still be connecting; retry in ~30s"
+        _check "Ping internet (8.8.8.8)" "failed - modem may still be connecting; retry in ~30s"
     fi
 
     # 5. DNS resolution
@@ -94,7 +94,7 @@ module_verify() {
         _check "QMI device ($QMI_DEVICE)" "not found"
     fi
 
-    # Signal info — parse +QCSQ: "tech",rssi,rsrp,sinr,rsrq
+    # Signal info - parse +QCSQ: "tech",rssi,rsrp,sinr,rsrq
     if [ -n "$AT_PORT" ]; then
         section_header "Modem Signal Info"
         local sig

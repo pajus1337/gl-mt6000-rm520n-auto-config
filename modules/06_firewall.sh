@@ -1,14 +1,14 @@
 #!/bin/sh
-# Module 06 — Firewall configuration
+# Module 06 - Firewall configuration
 # Ensures the WAN interface is in the wan zone and masquerade is on.
-# Uses fw4 (nftables) UCI config — do NOT mix raw iptables/nft rules.
+# Uses fw4 (nftables) UCI config - do NOT mix raw iptables/nft rules.
 
 module_firewall() {
     log_step "Module 06: Firewall configuration"
 
     # Verify fw4 is the active firewall
     if ! command -v fw4 >/dev/null 2>&1; then
-        log_warn "fw4 not found — skipping firewall module"
+        log_warn "fw4 not found - skipping firewall module"
         log_warn "Configure firewall manually via LuCI → Network → Firewall"
         return 0
     fi
@@ -51,7 +51,7 @@ module_firewall() {
     fi
 
     # MSS clamping for the WAN interface (important for 5G/PPP-over-GbE path):
-    # fw4 clamps MSS to path MTU natively via the zone's mtu_fix option — already
+    # fw4 clamps MSS to path MTU natively via the zone's mtu_fix option - already
     # set above. There is no "TCPMSS" rule target under fw4/nftables; a custom
     # `config rule` using it is rejected outright by the schema, so no separate
     # rule is created here.

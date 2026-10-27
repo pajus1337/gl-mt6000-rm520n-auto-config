@@ -33,7 +33,7 @@ _detect_install_dir() {
 INSTALL_DIR="$(_detect_install_dir)"
 
 if [ -z "$INSTALL_DIR" ]; then
-    # Running piped (wget URL | sh) — stdin is the pipe, not a terminal.
+    # Running piped (wget URL | sh) - stdin is the pipe, not a terminal.
     # Download all files, then re-exec from disk with /dev/tty so interactive
     # prompts work correctly.
     TMP_SETUP="/tmp/rm520n-setup-$$"
@@ -66,7 +66,7 @@ if [ -z "$INSTALL_DIR" ]; then
 
     chmod +x "${TMP_SETUP}/install.sh"
     exec sh "${TMP_SETUP}/install.sh" "$@" </dev/tty
-    # exec replaces this process — nothing below runs in piped mode
+    # exec replaces this process - nothing below runs in piped mode
 fi
 
 # ── From here: always running from a real directory with stdin = terminal ────
@@ -95,7 +95,7 @@ USAGE:
 OPTIONS:
   --dry-run    Show planned steps without making changes
   --debug      Verbose output including AT command I/O
-  --usb-only   USB-only mode (TODO — not yet implemented)
+  --usb-only   USB-only mode (TODO - not yet implemented)
   --help       Show this help
 
 REQUIREMENTS:
@@ -144,7 +144,7 @@ main() {
     print_banner
 
     if [ "$DRY_RUN" = "1" ]; then
-        log_warn "DRY RUN mode — no changes will be made"
+        log_warn "DRY RUN mode - no changes will be made"
     fi
 
     log_info "Install directory: $INSTALL_DIR"

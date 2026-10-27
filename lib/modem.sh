@@ -7,7 +7,7 @@
 #   - sleep accepts integers only (no 0.x)
 #   - exec N<>file and background dd used for serial I/O
 
-# detect_at_port — finds the AT command serial port and sets AT_PORT
+# detect_at_port - finds the AT command serial port and sets AT_PORT
 detect_at_port() {
     log_info "Detecting RM520NGL AT command port..."
 
@@ -26,7 +26,7 @@ detect_at_port() {
     die "No responsive AT command port found. Is the modem USB connected?"
 }
 
-# _at_probe PORT — sends AT, returns 0 if modem replies with OK
+# _at_probe PORT - sends AT, returns 0 if modem replies with OK
 _at_probe() {
     local port="$1"
     local tmpf="/tmp/_at_probe_$$"
@@ -48,7 +48,7 @@ _at_probe() {
     return $rc
 }
 
-# at_cmd COMMAND — sends AT command, returns response via stdout
+# at_cmd COMMAND - sends AT command, returns response via stdout
 # Uses AT_PORT; call detect_at_port first.
 # Polls output every second and returns as soon as OK/ERROR is seen.
 at_cmd() {
@@ -82,7 +82,7 @@ at_cmd() {
     printf '%s' "$resp"
 }
 
-# at_cmd_expect COMMAND EXPECTED_PATTERN — dies if response doesn't match
+# at_cmd_expect COMMAND EXPECTED_PATTERN - dies if response doesn't match
 at_cmd_expect() {
     local cmd="$1"
     local pattern="$2"
@@ -92,7 +92,7 @@ at_cmd_expect() {
         die "AT command '$cmd' failed. Expected '$pattern', got: $resp"
 }
 
-# detect_usb_modem — returns 0 if RM520NGL USB device is present
+# detect_usb_modem - returns 0 if RM520NGL USB device is present
 # Uses sysfs (lsusb not available on vanilla OpenWrt)
 detect_usb_modem() {
     local vid pid
@@ -105,7 +105,7 @@ detect_usb_modem() {
     return 1
 }
 
-# _usb_reprobe — unbind/bind modem USB device so newly loaded drivers attach
+# _usb_reprobe - unbind/bind modem USB device so newly loaded drivers attach
 _usb_reprobe() {
     local devpath
     for devpath in /sys/bus/usb/devices/*/idVendor; do
@@ -122,7 +122,7 @@ _usb_reprobe() {
     done
 }
 
-# wait_for_usb_modem TIMEOUT_SECS — waits until modem USB device appears
+# wait_for_usb_modem TIMEOUT_SECS - waits until modem USB device appears
 wait_for_usb_modem() {
     local timeout="${1:-30}"
     local elapsed=0
@@ -135,23 +135,23 @@ wait_for_usb_modem() {
     log_ok "Modem USB device detected"
 }
 
-# get_modem_firmware — prints modem firmware version via ATI
+# get_modem_firmware - prints modem firmware version via ATI
 get_modem_firmware() {
     [ -n "$AT_PORT" ] || return 1
     at_cmd "ATI" | grep -i "revision" | head -1
 }
 
-# get_pcie_mode — prints current pcie/mode value (0 or 1)
+# get_pcie_mode - prints current pcie/mode value (0 or 1)
 get_pcie_mode() {
     at_cmd 'AT+QCFG="pcie/mode"' | grep -o '[0-9]' | head -1
 }
 
-# get_eth_driver — prints current eth_driver state
+# get_eth_driver - prints current eth_driver state
 get_eth_driver() {
     at_cmd 'AT+QETH="eth_driver"'
 }
 
-# configure_pcie_eth_mode — enables PCIe + RTL8125 GbE mode on modem
+# configure_pcie_eth_mode - enables PCIe + RTL8125 GbE mode on modem
 # Requires firmware RM520NGLAAR05A01M4G or later.
 configure_pcie_eth_mode() {
     log_step "Configuring modem for PCIe/GbE data path"
@@ -173,19 +173,19 @@ configure_pcie_eth_mode() {
     at_cmd 'AT+CFUN=1,1'
 }
 
-# get_signal — prints parsed modem signal quality (filters AT echo and URCs)
+# get_signal - prints parsed modem signal quality (filters AT echo and URCs)
 get_signal() {
     [ -n "$AT_PORT" ] || return 1
     at_cmd "AT+QCSQ" | grep '^\+QCSQ'
 }
 
-# get_cell_info — prints parsed serving cell info
+# get_cell_info - prints parsed serving cell info
 get_cell_info() {
     [ -n "$AT_PORT" ] || return 1
     at_cmd 'AT+QENG="servingcell"' | grep '^\+QENG'
 }
 
-# detect_wan_eth_iface — finds ethernet interface with 192.168.225.x address
+# detect_wan_eth_iface - finds ethernet interface with 192.168.225.x address
 detect_wan_eth_iface() {
     log_info "Detecting Waveshare GbE interface..."
     local iface carrier cur_ip

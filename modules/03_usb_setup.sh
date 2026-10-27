@@ -1,5 +1,5 @@
 #!/bin/sh
-# Module 03 — USB interface setup
+# Module 03 - USB interface setup
 # Detects modem AT port, configures PCIe/GbE mode via AT commands,
 # and sets up the USB management interface for LuCI.
 
@@ -22,7 +22,7 @@ module_usb_setup() {
         sleep 1
         wait=$(( wait + 1 ))
     done
-    [ -c /dev/ttyUSB0 ] || log_warn "ttyUSB ports not found — AT detection may fail"
+    [ -c /dev/ttyUSB0 ] || log_warn "ttyUSB ports not found - AT detection may fail"
 
     # Find AT command port
     detect_at_port
@@ -36,7 +36,7 @@ module_usb_setup() {
     log_info "Current pcie/mode: ${cur_pcie:-unknown}"
 
     if [ "$cur_pcie" = "1" ]; then
-        log_ok "Modem already in PCIe/GbE mode — skipping AT reconfiguration"
+        log_ok "Modem already in PCIe/GbE mode - skipping AT reconfiguration"
     else
         log_info "Switching modem to PCIe/GbE mode (requires reboot)..."
         configure_pcie_eth_mode
@@ -55,7 +55,7 @@ module_usb_setup() {
 
     # AT+QMAPWAC=1 enables WWAN auto-connect in PCIe/GbE mode. It is a
     # persistent NVM setting but resets to 0 after a firmware upgrade, so
-    # check its state and apply only when needed — avoids touching the
+    # check its state and apply only when needed - avoids touching the
     # modem when everything is already working correctly.
     local wac
     wac="$(at_cmd 'AT+QMAPWAC?' | grep -oE '[01]' | head -1)"

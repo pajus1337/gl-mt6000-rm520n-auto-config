@@ -2,7 +2,7 @@
 # [TODO] Optional mode: USB-only (data + communication via USB, no GbE)
 #
 # This module configures the RM520NGL to use QMI over USB for both
-# data and management — no GbE port required.
+# data and management - no GbE port required.
 #
 # Use case: simpler setups where the Waveshare GbE port is not used,
 # or USB tethering is preferred.

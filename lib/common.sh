@@ -58,7 +58,7 @@ die() {
     exit "${2:-1}"
 }
 
-# confirm PROMPT — returns 0 on yes, 1 on no
+# confirm PROMPT - returns 0 on yes, 1 on no
 confirm() {
     local prompt="$1"
     local answer
@@ -70,7 +70,7 @@ confirm() {
     esac
 }
 
-# require_root — exits if not running as root
+# require_root - exits if not running as root
 require_root() {
     [ "$(id -u)" -eq 0 ] || die "This script must be run as root."
 }
@@ -91,7 +91,7 @@ wait_with_spinner() {
     printf '\b \n'
 }
 
-# print_banner — show install header
+# print_banner - show install header
 print_banner() {
     printf "\n"
     printf "${BOLD}${CYAN}╔══════════════════════════════════════════════════╗${RESET}\n"

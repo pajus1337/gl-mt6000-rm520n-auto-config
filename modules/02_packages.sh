@@ -1,5 +1,5 @@
 #!/bin/sh
-# Module 02 — Package installation
+# Module 02 - Package installation
 # Installs all required OpenWrt packages via apk.
 
 module_packages() {

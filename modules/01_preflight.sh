@@ -1,5 +1,5 @@
 #!/bin/sh
-# Module 01 — Preflight checks
+# Module 01 - Preflight checks
 # Validates system requirements before any changes are made.
 
 module_preflight() {
@@ -45,7 +45,7 @@ module_preflight() {
     fi
 
     # Check UCI / uci binary
-    command -v uci >/dev/null 2>&1 || die "uci not found — is this really OpenWrt?"
+    command -v uci >/dev/null 2>&1 || die "uci not found - is this really OpenWrt?"
     log_ok "UCI available"
 
     log_ok "Preflight checks passed"

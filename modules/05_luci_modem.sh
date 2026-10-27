@@ -1,5 +1,5 @@
 #!/bin/sh
-# Module 05 — LuCI modem status integration
+# Module 05 - LuCI modem status integration
 # Sets up the QMI management interface (USB) so LuCI can display
 # modem signal, registration, and connection info.
 # Data path remains on GbE (module 04); this is monitoring only.
@@ -24,7 +24,7 @@ module_luci_modem() {
     log_ok "QMI device: $QMI_DEVICE"
 
     # Create QMI management interface in UCI
-    # This interface is for monitoring only — it will not carry traffic
+    # This interface is for monitoring only - it will not carry traffic
     # (data flows through the GbE WAN configured in module 04).
     log_info "Creating LuCI QMI management interface: $QMI_IFACE"
 
@@ -36,7 +36,7 @@ module_luci_modem() {
     uci set "network.${QMI_IFACE}.apn=${APN:-internet}"
     uci set "network.${QMI_IFACE}.pdptype=ipv4v6"
     uci set "network.${QMI_IFACE}.auth=none"
-    # Disable auto-connect — this interface is for status queries only
+    # Disable auto-connect - this interface is for status queries only
     uci set "network.${QMI_IFACE}.auto=0"
 
     uci commit network
